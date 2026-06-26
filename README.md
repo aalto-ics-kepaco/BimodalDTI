@@ -1,5 +1,5 @@
 # BimodalDTI
-Official repository for the BimodalDTI prediction model
+Integrating language models and predicted 3D protein-ligand complex structures for DTI prediction
 
 # Summary of BimodalDTI model
 
