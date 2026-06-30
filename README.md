@@ -1,5 +1,5 @@
 # BimodalDTI
-Integrating language models and predicted 3D protein-ligand complex structures for DTI prediction
+Integrating Language Models and 3D Protein-Ligand Complex Structures for Drug-Target Binding Affinity Prediction
 
 # Summary of BimodalDTI model
 
