@@ -16,9 +16,7 @@ watch = Stopwatch()
 def get_predictions(
     model: GIGN,
     data_loader: torch.utils.data.DataLoader,
-    device: torch.device,
-    use_lm_embeddings = False,
-    lm_embedding_weight = 1.0
+    device: torch.device
 ):
     y_true = []
     y_pred = []
@@ -27,8 +25,6 @@ def get_predictions(
         for batch in data_loader:
             batch.to(device)
             z = model.embed(batch)
-            if use_lm_embeddings:
-                z = torch.concat((z, batch.embedding * lm_embedding_weight), dim=1)
             z = model.decide(z)
             y = batch.y
             for i in range(y.shape[0]):
@@ -40,11 +36,9 @@ def calc_eval_loss(
     model: GIGN,
     data_loader: DataLoader,
     device: torch.device,
-    criterion = torch.nn.functional.mse_loss,
-    use_lm_embeddings = True,
-    lm_embedding_weight = 1.0
+    criterion = torch.nn.functional.mse_loss
 ):
-    y_true, y_pred = get_predictions(model, data_loader, device, use_lm_embeddings, lm_embedding_weight)
+    y_true, y_pred = get_predictions(model, data_loader, device)
     loss = criterion(torch.tensor(y_pred), torch.tensor(y_true))
     return loss.item()
 
@@ -59,23 +53,18 @@ def train(
         criterion = torch.nn.functional.mse_loss,
         model_checkpoint_file: str | None = None,
         gnn_weight_decay = 0.0,
-        mlp_weight_decay = 0.0,
-        use_lm_embeddings = True,
-        min_lm_embedding_weight = 1.0,
-        max_lm_embedding_weight = 1.0
+        mlp_weight_decay = 0.0
 ):
     gnn_optimizer = torch.optim.Adam(model.gnn.parameters(), lr=gnn_lr, weight_decay=gnn_weight_decay)
     mlp_optimizer = torch.optim.Adam(model.head.parameters(), lr=mlp_lr, weight_decay=mlp_weight_decay)
 
     train_losses: list[float] = []
-    validation_loss: float = calc_eval_loss(model, validation_loader, device, criterion, use_lm_embeddings, min_lm_embedding_weight)
+    validation_loss: float = calc_eval_loss(model, validation_loader, device, criterion)
     validation_losses: list[float] = [validation_loss]
     print(f'validation loss: {validation_loss}')
 
     best_loss = validation_loss
     train_loss_index = 0
-
-    lm_embedding_weights = np.linspace(min_lm_embedding_weight, max_lm_embedding_weight, epochs)
 
     for epoch in range(epochs):
         print(f'epoch {epoch + 1}')
@@ -86,8 +75,6 @@ def train(
             gnn_optimizer.zero_grad()
             mlp_optimizer.zero_grad()
             z = model.embed(batch)
-            if use_lm_embeddings:
-                z = torch.concat((z, batch.embedding * lm_embedding_weights[epoch]), dim=1)
             z = model.decide(z)
             loss = criterion(z, batch.y)
             loss.backward()
@@ -98,7 +85,7 @@ def train(
             sys.stdout.write(f'\r{loss_value:.8f}  ')
         sys.stdout.write('\n')
         print(f'average train loss: {sum(train_losses[train_loss_index:]) / (len(train_losses) - train_loss_index)}')
-        validation_loss = calc_eval_loss(model, validation_loader, device, criterion, use_lm_embeddings, lm_embedding_weights[epoch])
+        validation_loss = calc_eval_loss(model, validation_loader, device, criterion)
         print(f'validation loss: {validation_loss}')
         validation_losses.append(validation_loss)
 
@@ -120,12 +107,6 @@ def main(args: list[str]):
     run_name = utils.get_from_args(args, '--run-name', datetime.now().strftime('%Y_%m_%d_%H_%M_%S'))
     print('run name:', run_name)
 
-    use_lm_embeddings = '--use-lm-embeddings' in args
-    if use_lm_embeddings:
-        print('using LM embeddings')
-    else:
-        print('not using LM embeddings')
-
     split = utils.get_from_args(args, '--split', None)
     if split is not None:
         split = int(split)
@@ -135,12 +116,8 @@ def main(args: list[str]):
         print('using "new drug" split')
 
     watch.start('loading data')
-    if '--kinase' in args:
-        print('using kinase data')
-        train_loader, validation_loader = gign_data.get_kinase_dataloaders(use_lm_embeddings, split, new_drug)
-    else:
-        print('using davis data')
-        train_loader, validation_loader = gign_data.get_davis_dataloaders(use_lm_embeddings)
+    print('using kinase data')
+    train_loader, validation_loader = gign_data.get_kinase_dataloaders(split, new_drug)
     watch.stop()
     
     utils.create_directory_if_missing('./../saved_models/gnn/')
@@ -157,7 +134,7 @@ def main(args: list[str]):
     print('checkpoint file:', model_checkpoint_file)
     print('final file:', model_final_file)
 
-    model = GIGN(35, 256, 1664) if use_lm_embeddings else GIGN(35, 256)
+    model = GIGN(35, 256)
     if '--continue' in args:
         model.load_state_dict(torch.load(model_save_file))
         print('continuing with the saved model')
@@ -182,15 +159,6 @@ def main(args: list[str]):
     print('loss plot save file:', loss_plot_file)
     loss_json_file = f'losses_{run_name}.json'
 
-    min_lm_embedding_weight = float(utils.get_from_args(
-        args, '--min-lm-embedding-weight', '1.0'
-    ))
-    max_lm_embedding_weight = float(utils.get_from_args(
-        args, '--max-lm-embedding-weight', '1.0'
-    ))
-    print('min lm embedding weight:', min_lm_embedding_weight)
-    print('max lm embedding weight:', max_lm_embedding_weight)
-
     sys.stdout.flush()
     
     criterion = torch.nn.functional.mse_loss
@@ -198,13 +166,12 @@ def main(args: list[str]):
     watch.start('training')
     train_losses, validation_losses = train(
         model, epochs, gnn_lr, mlp_lr, train_loader, validation_loader, device,
-        criterion, model_checkpoint_file, gnn_weight_decay, mlp_weight_decay,
-        use_lm_embeddings, min_lm_embedding_weight, max_lm_embedding_weight
+        criterion, model_checkpoint_file, gnn_weight_decay, mlp_weight_decay
     )
     watch.stop()
 
     save_model(model, model_final_file, True)
-    y_true, y_pred = get_predictions(model, validation_loader, device, use_lm_embeddings, max_lm_embedding_weight)
+    y_true, y_pred = get_predictions(model, validation_loader, device)
     print('final model')
     show_metrics(y_true, y_pred)
 
@@ -217,15 +184,15 @@ def main(args: list[str]):
     utils.save_json(loss_json_file, {'training': train_losses, 'validation': validation_losses})
 
     print('best model')
-    y_true, y_pred = get_predictions(model, validation_loader, device, use_lm_embeddings, max_lm_embedding_weight)
+    y_true, y_pred = get_predictions(model, validation_loader, device)
     show_metrics(y_true, y_pred)
 
     save_model(model, model_save_file, '--force-save' in args)
 
     if '--show-test' in args:
         print('test data')
-        test_loader = gign_data.get_kinase_test_dataloader(use_lm_embeddings, split, new_drug)
-        y_true, y_pred = get_predictions(model, test_loader, device, use_lm_embeddings, max_lm_embedding_weight)
+        test_loader = gign_data.get_kinase_test_dataloader(split, new_drug)
+        y_true, y_pred = get_predictions(model, test_loader, device)
         show_metrics(y_true, y_pred)
 
 if __name__ == '__main__':

@@ -8,7 +8,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 tokenizer = AutoTokenizer.from_pretrained("DeepChem/ChemBERTa-77M-MLM", cache_dir=cache_dir)
 model = AutoModel.from_pretrained("DeepChem/ChemBERTa-77M-MLM", cache_dir=cache_dir).to(device)
 
-with open('./../data/drugs/schulman_smiles_processed.txt', 'r') as f:
+with open('./../data/drugs/smiles_processed.txt', 'r') as f:
     smiles_strings = list(map(lambda line: line.strip(), f.readlines()))
 count = len(smiles_strings)
 
@@ -32,4 +32,4 @@ while index < count:
 
     index += batch_size
 
-torch.save(representations, './../data/drugs/schulman_representations.pt')
+torch.save(representations, './../data/drugs/representations.pt')

@@ -1,7 +1,7 @@
 import sys
 import torch
 from torch.utils.data import DataLoader
-from embedding_data import get_kinase_dataloaders, get_davis_dataloaders, get_kinase_test_dataloader
+from embedding_data import get_kinase_dataloaders, get_kinase_test_dataloader
 from plot_training_losses import plot_training_losses
 from save_model import save_model
 import utils
@@ -115,12 +115,8 @@ def main(args: list[str]):
         print('using "new drug" split')
 
     watch.start('loading data')
-    if '--kinase' in args:
-        print('using kinase data')
-        train_loader, validation_loader = get_kinase_dataloaders(False, split, new_drug)
-    else:
-        print('using davis data')
-        train_loader, validation_loader = get_davis_dataloaders(False)
+    print('using kinase data')
+    train_loader, validation_loader = get_kinase_dataloaders(split, new_drug)
     watch.stop()
     
     create_directory_if_missing('./../saved_models/embeddings/')
@@ -159,7 +155,6 @@ def main(args: list[str]):
     sys.stdout.flush()
     
     criterion = torch.nn.functional.mse_loss
-    #criterion = lambda a, b: torch.mean(torch.log(torch.cosh(a - b)))
     
     watch.start('training')
     train_losses, validation_losses = train(

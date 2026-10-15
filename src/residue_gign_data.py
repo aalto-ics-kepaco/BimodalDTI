@@ -147,13 +147,10 @@ def key_file_to_key_list(key_file: str):
     with open(key_file, 'r') as f:
         return [int(k) for k in f.read().split('\n')]
 
-def get_davis_dataloaders():
-    raise Exception('Davis data is not currently supported')
-
 def get_kinase_dataloader(keys: list[int], labels: dict[str, float] | None = None, batch_size=128, shuffle=True):
     if labels is None:
         labels = get_kinase_label_mapping_from_df(pd.read_csv('./../data/master.csv'))
-    folder = './../../dataset-construction/kinase_binary_residue/'
+    folder = './../data/kinase_binary_residue/'
     return get_data_loader(folder, keys, labels, batch_size=batch_size, shuffle=shuffle)
 
 def get_kinase_train_dataloader(split: int | None = None, new_drug = False):
@@ -173,7 +170,7 @@ def get_kinase_dataloaders(split: int | None = None, new_drug = False):
     train_keys, validation_keys, _ = get_key_files(split, new_drug)
     train_keys = key_file_to_key_list(train_keys)
     validation_keys = key_file_to_key_list(validation_keys)
-    folder = './../../dataset-construction/kinase_binary_residue/'
+    folder = './../data/kinase_binary_residue/'
     train_loader = get_data_loader(folder, train_keys, labels, batch_size=128, shuffle=True)
     validation_loader = get_data_loader(folder, validation_keys, labels, batch_size=128, shuffle=False)
     return train_loader, validation_loader
@@ -184,26 +181,13 @@ def get_kinase_full_dataset_dataloader():
     validation_keys = key_file_to_key_list('./../data/keys/validation_keys_clean.txt')
     test_keys = key_file_to_key_list('./../data/keys/test_keys_clean.txt')
     keys = train_keys + validation_keys + test_keys
-    folder = './../../dataset-construction/kinase_binary_residue/'
+    folder = './../data/kinase_binary_residue/'
     dataloader = get_data_loader(folder, keys, labels, batch_size=128, shuffle=False)
     return dataloader
 
-def get_davis_dataloader(keys: str | list[int] | None = None, labels: dict[str, float] | None = None, batch_size=128, shuffle=False):
-    if keys is None:
-        #keys = key_file_to_key_list('./../data/davis/davis_keys/train_keys.txt') + \
-        #key_file_to_key_list('./../data/davis/davis_keys/validation_keys.txt') + \
-        #key_file_to_key_list('./../data/davis/davis_keys/test_keys.txt')
-        keys = key_file_to_key_list('./../data/davis/davis_keys/only_active/active_keys.txt')
-    elif type(keys) == str:
-        keys = key_file_to_key_list(keys)
-    if labels is None:
-        labels = get_label_mapping_from_df(pd.read_csv('./../data/davis/davis_dataset_processed.csv'), 'Kd')
-    folder = './../../dataset-construction/davis_binary_residue/'
-    return get_data_loader(folder, keys, labels, batch_size=batch_size, shuffle=shuffle)
-
 def main(args: list[str]):
     start = time.time()
-    dataset = ResidueDataset('./../../dataset-construction/kinase_binary_residue/')
+    dataset = ResidueDataset('./../data/kinase_binary_residue/')
     end = time.time()
     print('dataset creation:', end - start)
     start = time.time()

@@ -9,7 +9,6 @@ from evaluation import show_metrics
 from plot_training_losses import plot_training_losses
 from stopwatch import Stopwatch
 from datetime import datetime
-import numpy as np
 
 watch = Stopwatch()
 
@@ -109,12 +108,8 @@ def main(args: list[str]):
         print('using "new drug" split')
 
     watch.start('loading data')
-    if '--kinase' in args:
-        print('using kinase data')
-        train_loader, validation_loader = residue_gign_data.get_kinase_dataloaders(split, new_drug)
-    else:
-        print('using davis data')
-        train_loader, validation_loader = residue_gign_data.get_davis_dataloaders()
+    print('using kinase data')
+    train_loader, validation_loader = residue_gign_data.get_kinase_dataloaders(split, new_drug)
     watch.stop()
     
     utils.create_directory_if_missing('./../saved_models/residue_gign/')

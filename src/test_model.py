@@ -5,7 +5,6 @@ import gign_data
 from residue_gign import ResidueGIGN
 from decision_head import DecisionHead
 from GIGN import GIGN
-import json
 from stopwatch import Stopwatch
 from train_residue_gign import get_predictions as get_residue_gign_predictions
 from train_lm_mlp import get_predictions as get_lm_mlp_predictions
@@ -41,7 +40,7 @@ for i in range(1, 6):
 
     dataloader = None
     watch.start('loading LM-MLP data')
-    dataloader = embedding_data.get_kinase_test_dataloader(False, i, new_drug=new_drug)
+    dataloader = embedding_data.get_kinase_test_dataloader(i, new_drug=new_drug)
     watch.stop()
 
     model = DecisionHead(384 + 1024)
@@ -57,7 +56,7 @@ for i in range(1, 6):
 
     dataloader = None
     watch.start('loading GIGN data')
-    dataloader = gign_data.get_kinase_test_dataloader(False, i, new_drug=new_drug)
+    dataloader = gign_data.get_kinase_test_dataloader(i, new_drug=new_drug)
     watch.stop()
 
     model = GIGN(35, 256)

@@ -1,6 +1,5 @@
 import pymol
 from rdkit import Chem
-import pickle
 import utils
 import os
 import sys
@@ -69,7 +68,6 @@ def mol2graph(mol):
 
 def inter_graph(ligand, pocket, dis_threshold = 5.):
     atom_num_l = ligand.GetNumAtoms()
-    #atom_num_p = pocket.GetNumAtoms()
 
     graph_inter = nx.Graph()
     pos_l = ligand.GetConformers()[0].GetPositions()
@@ -128,8 +126,6 @@ def protein_and_ligand_to_binary(input_folder: str, output_file: str, label: flo
     Chem.SanitizeMol(protein, Chem.SANITIZE_ALL ^ Chem.SANITIZE_PROPERTIES, catchErrors=True)
     data = mols2graphs(ligand, protein, label)
     torch.save(data, output_file)
-    #with open(output_file, 'wb') as f:
-    #    pickle.dump((ligand, protein), f)
 
 def delete_partial_pdbs(folder: str):
     os.remove(folder + 'ligand.pdb')
