@@ -33,7 +33,6 @@ class ResidueDataset(Sequence):
         self._entries = [
             self._process_entry(e, (None if labels is None else labels[e]))
             for e in (os.listdir(self._data_folder) if file_names is None else file_names)
-            #for e in os.listdir(self._data_folder)[0:128]
         ]
 
     def __len__(self):

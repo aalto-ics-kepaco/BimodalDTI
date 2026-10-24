@@ -9,7 +9,6 @@ from evaluation import show_metrics
 from plot_training_losses import plot_training_losses
 from stopwatch import Stopwatch
 from datetime import datetime
-import numpy as np
 
 watch = Stopwatch()
 
